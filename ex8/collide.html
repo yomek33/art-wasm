@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Collision detection</title>
+    <style>
+      .link-container {
+        display: flex;
+        justify-content: flex-start;
+        padding-left: 20px;
+        padding-bottom: 5px;
+      }
+      .link-container a {
+        margin-right: 10px;
+      }
+
+    </style>
+  </head>
+
+  <body>
+    <div class="link-container">
+      <a href="../ex7/add_message.html">ex7/add_message</a>
+      <a href="../ex7/hex_and_binary.html">ex7/hex_and_binary</a>
+      <a>ex8/collide</a>
+    </div>
+
+    <canvas id="cnvs" width="512" height="512"></canvas>
+
+    </div>
+    <script>
+      const cnvs_size = 512;
+      const no_hit_color = 0xff_00_ff_00; // 非衝突　緑
+      const hit_color = 0xff_00_00_ff; // 衝突　赤
+
+      const pixel_count = cnvs_size * cnvs_size;
+
+      const canvas = document.getElementById("cnvs");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, 512, 512); // 画面クリア キャンバスを初期化
+
+      //線形メモリ内のオブジェクト関連の定数
+      const obj_start = pixel_count * 4; //1ピクセルごとに4バイト
+      const obj_start_32 = pixel_count; //32birのオフセット
+      const obj_size = 4; //正方形オブジェクトのピクセル数
+      const obj_cnt = 3000; //オブジェクトの数
+      const stride_bytes = 16; //オブジェクトのストライド 各オブジェクトのデータが16バイト
+
+      const x_offset = 0;
+      const y_offset = 4;
+      const xv_offset = 8; //x座標の速度
+      const yv_offset = 12; //y座標の速度
+
+      const memory = new WebAssembly.Memory({ initial: 80 }); //80ページのメモリを確保
+      const mem_i8 = new Int8Array(memory.buffer);
+      const mem_i32 = new Uint32Array(memory.buffer);
+
+      // WebAssemblyモジュールに渡すimportObject
+      const importObject = {
+        env: {
+          buffer: memory,
+          cnvs_size: cnvs_size,
+          obj_start: obj_start,
+          obj_start_32: obj_start_32,
+          obj_size: obj_size,
+          obj_cnt: obj_cnt,
+          stride_bytes: stride_bytes,
+          x_offset: x_offset,
+          y_offset: y_offset,
+          xv_offset: xv_offset,
+          yv_offset: yv_offset,
+          no_hit_color: no_hit_color,
+          hit_color: hit_color,
+        },
+      };
+
+      // ImageDataオブジェクトを作成
+      // ImageData https://developer.mozilla.org/ja/docs/Web/API/ImageData/data
+      const image_data = new ImageData(
+        new Uint8ClampedArray(memory.buffer, 0, pixel_count * 4),
+        cnvs_size,
+        cnvs_size
+      );
+
+      //ランダムなオブジェクトを作成
+      const stride_i32 = stride_bytes / 4; //i32型の整数（4byte）のストライド
+      for (let i = 0; i < obj_cnt * stride_i32; i += stride_i32) {
+        //座標
+        let temp = Math.floor(Math.random() * cnvs_size); //0 ~ canvs_sizeの乱数
+        mem_i32[obj_start_32 + i] = temp;
+        temp = Math.floor(Math.random() * cnvs_size);
+        mem_i32[obj_start_32 + i + 1] = temp;
+
+        //速度
+        temp = Math.round(Math.random() * 4) - 2;
+        mem_i32[obj_start_32 + i + 2] = temp;
+        temp = Math.round(Math.random() * 4) - 2;
+        mem_i32[obj_start_32 + i + 3] = temp;
+      }
+
+      //
+      var animation_wasm;
+      function animate() {
+        animation_wasm(); //wasmの関数を呼び出す
+        ctx.putImageData(image_data, 0, 0); //画面に表示
+        requestAnimationFrame(animate); //次のフレームを要求
+      }
+
+      //即時実行される非同期関数
+      (async () => {
+        let obj = await WebAssembly.instantiateStreaming(
+          fetch("collide.wasm"),
+          importObject
+        );
+        animation_wasm = obj.instance.exports.main; //WebAssemblyモジュールからmain関数を取得し、animation_wasm変数に割り当てる
+        requestAnimationFrame(animate);
+      })();
+
+
+    </script>
+  </body>
+</html>
