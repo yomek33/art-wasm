@@ -2,7 +2,7 @@ const colors = require("colors"); //colorsモジュールの読み込み
 const fs = require("fs");
 const bytes = fs.readFileSync(__dirname + "/store_data.wasm");
 
-const memory = new WebAssembly.Memory({ initial: 1 }); //WebAssembly.Memoryオブジェクトの作成。６４kのメモリブロックを確保
+const memory = new WebAssembly.Memory({ initial: 1 }); //WebAssembly.Memoryオブジェクトの作成。64kのメモリブロックを確保
 const mem_i32 = new Uint32Array(memory.buffer); //メモリの内容をUint32Arrayで取得. memoryのオブジェクトの内容にアクセスできるビューを作成
 const data_addr = 32; //バイト単位のインデックス
 const data_i32_index = data_addr / 4; //開始データインデックス 8

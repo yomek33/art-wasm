@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hex and Binary</title>
+    <style>
+      .link-container {
+        display: flex;
+        justify-content: flex-start;
+        padding-left: 20px;
+      }
+      .link-container a {
+        margin-right: 10px;
+      }
+    </style>
+    <script>
+      const memory = new WebAssembly.Memory({ initial: 1 });
+      var output = null;
+      var setOutput = (number) => {
+        console.log("function not available");
+        return 0;
+      };
+      function setNumbers(number) {
+        if (output == null) {
+          return;
+        }
+        let len = setOutput(number);
+        let bytes = new Uint8Array(memory.buffer, 1024, len);
+        output.innerHTML = new TextDecoder("utf8").decode(bytes);
+      }
+      function onPageLoad() {
+        output = document.getElementById("output");
+        var message_num = 0;
+      }
+      let importObject = {
+        env: {
+          buffer: memory,
+        },
+      };
+      (async () => {
+        let obj = await WebAssembly.instantiateStreaming(
+          fetch("hex_and_binary.wasm"),
+          importObject
+        );
+        setOutput = obj.instance.exports.setOutput;
+        let btn = document.getElementById("set_numbers_button");
+        btn.style.display = "block";
+      })();
+    </script>
+  </head>
+
+  <body
+    onload="onPageLoad()"
+    style="font-family: 'Courier New', Courier, monospace"
+  >
+    <div class="link-container">
+      <a href="../ex7/add_message.html">ex7/add_message</a>
+      <a>ex7/hex_and_binary</a>
+      <a href="../ex8/collide.html">ex8/collide</a>
+    </div>
+    <div id="output">
+      <h1>0</h1>
+      <h4>0x0</h4>
+      <h4>0000 0000 0000 0000 0000 0000 0000 0000</h4>
+    </div>
+    <br />
+    <input type="number" id="val" value="0" /><br /><br />
+    <button
+      id="set_numbers_button"
+      type="button"
+      style="display: none"
+      onclick="setNumbers( document.getElementById('val').value )"
+    >
+      Set Numbers
+    </button>
+  </body>
+</html>
